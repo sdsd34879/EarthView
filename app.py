@@ -127,4 +127,5 @@ if __name__ == '__main__':
     print(f"  手机访问: http://{local_ip}:8080  (同一WiFi)")
     print("="*60+"\n")
     threading.Thread(target=open_browser,daemon=True).start()
-    app.run(host='0.0.0.0',port=8080,debug=False)
+    port = int(os.environ.get('PORT', 8080))
+    app.run(host='0.0.0.0', port=port, debug=False)
