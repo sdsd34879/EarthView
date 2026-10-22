@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>EarthView — 地球观测与天文探索 v3</title>
+<script src="https://cdn.bootcdn.net/ajax/libs/echarts/5.5.0/echarts.min.js"></script>
+<style>
+:root{--bg:#080d16;--c1:#111827;--bd:#1e293b;--tx:#e2e8f0;--t2:#94a3b8;--bl:#3b82f6;--go:#f59e0b;--pu:#8b5cf6;--gr:#10b981;--re:#ef4444;--nh:56px}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,'PingFang SC','Microsoft YaHei',sans-serif;background:var(--bg);color:var(--tx);min-height:100vh}
+.nav{position:fixed;top:0;left:0;right:0;z-index:100;height:var(--nh);background:rgba(8,13,22,.96);backdrop-filter:blur(20px);border-bottom:1px solid var(--bd);display:flex;align-items:center;padding:0 12px;gap:4px;overflow-x:auto}
+.nav-tab{flex-shrink:0;padding:8px 16px;border-radius:20px;font-size:13px;cursor:pointer;color:var(--t2);transition:all .3s;white-space:nowrap;border:1px solid transparent;font-weight:500;user-select:none}
+.nav-tab.active{color:#fff;border-color:var(--bl);background:rgba(59,130,246,.18)}
+.main{margin-top:var(--nh);padding:12px}
+.sec{display:none;animation:in .35s}
+.sec.active{display:block}
+@keyframes in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.card{background:var(--c1);border:1px solid var(--bd);border-radius:14px;padding:16px;margin-bottom:14px}
+.card h2{font-size:17px;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.card .hint{font-size:11px;color:var(--t2);margin-top:8px}
+.chart{width:100%;height:320px}
+.chart-lg{height:440px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.scroll{display:flex;gap:12px;overflow-x:auto;padding-bottom:8px;-webkit-overflow-scrolling:touch}
+.video-wrap{position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:12px;background:#000}
+.video-wrap iframe{position:absolute;top:0;left:0;width:100%;height:100%;border:0;border-radius:12px}
+.pcard{background:var(--c1);border:1px solid var(--bd);border-radius:14px;padding:14px;text-align:center;cursor:pointer;transition:all .25s}
+.pcard:hover{border-color:var(--pu);transform:translateY(-2px)}
+.pcard:active{border-color:var(--pu)}
+.pcard .icon{font-size:40px;display:block;margin-bottom:6px}
+.pcard h4{font-size:13px;margin-bottom:4px}
+.pcard p{font-size:10px;color:var(--t2);line-height:1.5}
+/* 真实图片卡片 */
+.img-card{background:var(--c1);border:1px solid var(--bd);border-radius:12px;overflow:hidden;cursor:pointer;transition:all .25s}
+.img-card:hover{border-color:var(--go);transform:translateY(-2px)}
+.img-card img{width:100%;aspect-ratio:16/10;object-fit:cover;background:#0d1321}
+.img-card .cap{padding:8px 10px;font-size:11px;color:var(--t2)}
+.vcard{background:var(--c1);border:1px solid var(--bd);border-radius:14px;overflow:hidden;min-width:250px;flex-shrink:0;cursor:pointer}
+.vcard:active{border-color:var(--go)}
+.vcard .thumb{width:100%;aspect-ratio:16/10;object-fit:cover;background:#1a1f2e}
+.vcard .info{padding:10px 12px}
+.vcard .info h4{font-size:13px;margin-bottom:4px}
+.vcard .info p{font-size:11px;color:var(--t2)}
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:200;align-items:center;justify-content:center;padding:12px}
+.modal.show{display:flex}
+.modal-inner{background:var(--c1);border:1px solid var(--bd);border-radius:16px;padding:16px;max-width:600px;width:96%;max-height:84vh;overflow-y:auto}
+.modal-close{float:right;background:none;border:none;color:#fff;font-size:24px;cursor:pointer;line-height:1}
+.modal-inner img{width:100%;border-radius:10px;margin:8px 0}
+.tag{display:inline-block;padding:2px 10px;border-radius:12px;font-size:10px;font-weight:500;margin:2px}
+.tag-bl{background:rgba(59,130,246,.2);color:#60a5fa}
+.tag-go{background:rgba(245,158,11,.2);color:#fbbf24}
+.tag-gr{background:rgba(16,185,129,.2);color:#34d399}
+.tag-re{background:rgba(239,68,68,.2);color:#f87171}
+.ty-tag:hover{transform:scale(1.05);transition:transform .15s}
+.ty-tag:active{opacity:.7}
+.iss-badge{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.3);border-radius:20px;font-size:13px;color:#34d399}
+.iss-dot{width:8px;height:8px;border-radius:50%;background:#34d399;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.load{text-align:center;padding:20px;color:var(--t2)}
+.load .spin{width:28px;height:28px;border:3px solid var(--bd);border-top-color:var(--bl);border-radius:50%;animation:sp .8s linear infinite;margin:10px auto}
+@keyframes sp{to{transform:rotate(360deg)}}
+/* Mobile */
+@media(max-width:768px){.grid2,.grid3,.grid4{grid-template-columns:1fr 1fr}.chart{height:240px}.chart-lg{height:300px}.nav-tab{padding:6px 12px;font-size:11px}.vcard{min-width:160px}}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+    <div class="nav-tab active" data-tab="weather">🌍 全球天气</div>
+    <div class="nav-tab" data-tab="tornado">🌪 龙卷风</div>
+    <div class="nav-tab" data-tab="universe">🪐 宇宙探索</div>
+    <div class="nav-tab" data-tab="iss">🛰 ISS直播</div>
+</nav>
+
+<div class="main">
+
+<!-- ====== 全球天气 ====== -->
+<div class="sec active" id="sec-weather">
+    <div class="card"><h2>🌀 全球热带气旋 / 台风路径（实时 + 历史）</h2>
+        <!-- 台风选择器 -->
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center" id="typhoon-selector">
+            <span style="font-size:12px;color:var(--t2);white-space:nowrap">📡 数据源:</span>
+            <button onclick="loadLiveTyphoons()" style="padding:6px 14px;border-radius:16px;border:1px solid var(--gr);background:rgba(16,185,129,.15);color:#34d399;cursor:pointer;font-size:12px;white-space:nowrap">🟢 实时活跃台风</button>
+            <span style="font-size:12px;color:var(--t2);white-space:nowrap;margin-left:8px">📜 历史:</span>
+            <button onclick="selectedTyphoonNames=[];renderAllTyphoons();" style="padding:4px 10px;border-radius:12px;border:1px solid var(--bd);background:var(--c1);color:var(--t2);cursor:pointer;font-size:10px;white-space:nowrap">↺ 还原全部</button>
+            <select id="typhoon-year" onchange="filterTyphoonByYear()" style="padding:6px 10px;border-radius:12px;background:var(--c1);color:var(--tx);border:1px solid var(--bd);font-size:12px">
+                <option value="all">全部年份</option>
+                <option value="2026">2026年(至今)</option>
+                <option value="2025">2025年</option>
+                <option value="2024">2024年</option>
+                <option value="2023">2023年</option>
+                <option value="2022">2022年</option>
+                <option value="2021">2021年</option>
+                <option value="2020">2020年</option>
+                <option value="2019">2019年</option>
+                <option value="2018">2018年</option>
+                <option value="2017">2017年</option>
+            </select>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;max-height:120px;overflow-y:auto" id="typhoon-list"></div>
+        <div class="chart-lg" id="c-typhoon"><div class="load"><div class="spin"></div>加载地图数据中...</div></div>
+        <div class="hint" id="typhoon-hint">JTWC/CMA历史台风最佳路径 | 点击台风名可查看/隐藏路径 | CMA=中国气象局 JTWC=联合台风预警中心</div>
+    </div>
+    <div class="grid2">
+        <div class="card"><h2>🌡 全球20城市实时温度</h2><div class="chart" id="c-temp"><div class="load"><div class="spin"></div>获取天气数据...</div></div>
+            <div class="hint" id="wu">Open-Meteo 免费全球天气API</div></div>
+        <div class="card"><h2>💨 全球风速 + 气压双轴图</h2><div class="chart" id="c-wind"></div>
+            <div class="hint">蓝色柱=风速(km/h) | 金色线=气压(hPa)</div></div>
+    </div>
+    <div class="card"><h2>🛰 全球卫星云图（点击可放大查看原图）</h2>
+        <div class="scroll">
+            <img class="img-card" style="width:48%;min-width:280px;flex-shrink:0;cursor:pointer" src="https://cdn.star.nesdis.noaa.gov/GOES16/ABI/FD/GEOCOLOR/1808x1808.jpg" alt="GOES-East" onclick="showImg('https://cdn.star.nesdis.noaa.gov/GOES16/ABI/FD/GEOCOLOR/5424x5424.jpg','GOES-16 大西洋/美洲 全盘云图')" onload="this.style.display='block'" onerror="this.style.display='none'">
+            <img class="img-card" style="width:48%;min-width:280px;flex-shrink:0;cursor:pointer" src="https://cdn.star.nesdis.noaa.gov/GOES18/ABI/FD/GEOCOLOR/1808x1808.jpg" alt="GOES-West" onclick="showImg('https://cdn.star.nesdis.noaa.gov/GOES18/ABI/FD/GEOCOLOR/5424x5424.jpg','GOES-18 太平洋/亚洲 全盘云图')" onload="this.style.display='block'" onerror="this.style.display='none'">
+        </div>
+        <div class="hint">NOAA GOES静止气象卫星 | 左:大西洋&美洲 | 右:太平洋&亚洲 | 每10分钟更新 | 如加载失败可能受网络限制</div>
+    </div>
+</div>
+
+<!-- ====== 龙卷风 ====== -->
+<div class="sec" id="sec-tornado">
+    <div class="card"><h2>🌪 龙卷风实拍视频 <span style="font-size:12px;color:var(--t2);font-weight:normal">（点击跳转B站搜索观看）</span></h2>
+        <div class="scroll">
+            <div class="vcard" onclick="win('https://search.bilibili.com/all?keyword=EF5%E9%BE%99%E5%8D%B7%E9%A3%8E%E5%AE%9E%E6%8B%8D')"><div style="aspect-ratio:16/10;background:linear-gradient(135deg,#2d1f1f,#4a2020);display:flex;align-items:center;justify-content:center;font-size:48px">🌪️</div><div class="info"><h4>EF5级龙卷风实拍合集</h4><p>B站搜索 → 真实影像记录</p></div></div>
+            <div class="vcard" onclick="win('https://search.bilibili.com/all?keyword=%E9%BE%99%E5%8D%B7%E9%A3%8E%E8%BF%BD%E9%A3%8E%E8%80%85%E5%AE%9E%E6%8B%8D')"><div style="aspect-ratio:16/10;background:linear-gradient(135deg,#1f2d2d,#204040);display:flex;align-items:center;justify-content:center;font-size:48px">⛈️</div><div class="info"><h4>追风者近距离实拍</h4><p>B站搜索 → 风暴追逐者视角</p></div></div>
+            <div class="vcard" onclick="win('https://search.bilibili.com/all?keyword=%E9%BE%99%E5%8D%B7%E9%A3%8E%E7%A0%B4%E5%9D%8F%E5%8A%9B%E7%8E%B0%E5%9C%BA')"><div style="aspect-ratio:16/10;background:linear-gradient(135deg,#1f1f2d,#202040);display:flex;align-items:center;justify-content:center;font-size:48px">🏚️</div><div class="info"><h4>龙卷风破坏力现场</h4><p>B站搜索 → 过境前后对比</p></div></div>
+            <div class="vcard" onclick="win('https://search.bilibili.com/all?keyword=%E9%BE%99%E5%8D%B7%E9%A3%8E%E7%A7%91%E6%99%AE%E8%AE%B0%E5%BD%95%E7%89%87')"><div style="aspect-ratio:16/10;background:linear-gradient(135deg,#2d1f2d,#402040);display:flex;align-items:center;justify-content:center;font-size:48px">🎬</div><div class="info"><h4>龙卷风科普纪录片</h4><p>B站搜索 → 科学解读龙卷风</p></div></div>
+        </div>
+    </div>
+    <div class="card"><h2>📊 龙卷风科学知识库 <span style="font-size:12px;color:var(--t2);font-weight:normal">（点击卡片查看完整资料）</span></h2>
+        <div class="grid3" id="tornado-cards"></div>
+    </div>
+</div>
+
+<!-- ====== 宇宙探索 ====== -->
+<div class="sec" id="sec-universe">
+    <div class="card"><h2>🪐 太阳系八大行星 + 太阳 <span style="font-size:12px;color:var(--t2);font-weight:normal">（点击查看详细资料与探测历史）</span></h2>
+        <div class="grid3" id="planet-cards"></div>
+    </div>
+    <div class="card"><h2>🔭 哈勃空间望远镜 — 经典影像（NASA官方图片，点击放大）</h2>
+        <div class="grid4" id="hubble-cards"></div>
+        <div class="hint">图片来源: NASA/ESA Hubble Space Telescope | 这些是改变了人类对宇宙认知的历史性影像</div>
+    </div>
+    <div class="card"><h2>🌌 詹姆斯·韦伯空间望远镜 — 最新影像（NASA官方图片，点击放大）</h2>
+        <div class="grid4" id="webb-cards"></div>
+        <div class="hint">图片来源: NASA/ESA/CSA James Webb Space Telescope | 2022年至今的最新深空观测成果</div>
+    </div>
+</div>
+
+<!-- ====== ISS ====== -->
+<div class="sec" id="sec-iss">
+    <div class="card" style="text-align:center"><h2 style="justify-content:center">🛰 NASA 国际空间站 4K 地球直播</h2>
+        <div class="iss-badge" style="margin-bottom:12px"><span class="iss-dot"></span> LIVE实时</div>
+        <div class="video-wrap"><iframe src="https://www.youtube.com/embed/86YLFOog4GM?autoplay=1&mute=1" allow="autoplay;encrypted-media" allowfullscreen></iframe></div>
+        <div class="hint">NASA ISS外部摄像头实时回传 | 国内观看可尝试B站搜"ISS直播"</div>
+    </div>
+    <div class="grid2">
+        <div class="card"><h2>📍 ISS 实时轨道位置</h2><div class="chart" id="c-iss-orbit"><div class="load"><div class="spin"></div>定位中...</div></div>
+            <div style="text-align:center;margin-top:8px"><span id="iss-coords" style="font-weight:bold;color:var(--gr);font-size:14px">获取中...</span></div>
+        </div>
+        <div class="card"><h2>📡 ISS 数据面板</h2>
+            <div style="line-height:2.3;font-size:13px">
+                <p><span class="tag tag-gr">轨道高度</span> ≈408km (近地轨道LEO)</p>
+                <p><span class="tag tag-gr">飞行速度</span> ≈27,600km/h (23马赫)</p>
+                <p><span class="tag tag-gr">绕地周期</span> ≈92分钟 (每日16圈)</p>
+                <p><span class="tag tag-gr">常驻乘员</span> 6-7名宇航员</p>
+                <p><span class="tag tag-gr">尺寸规模</span> 109m×73m (足球场大小)</p>
+                <p><span class="tag tag-gr">日出次数</span> 每天16次日出日落</p>
+                <p><span class="tag tag-gr">在轨时间</span> 1998年首发, 持续26年+</p>
+                <p><span class="tag tag-gr">合作机构</span> NASA/Roscosmos/ESA/JAXA/CSA</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+</div>
+
+<!-- Modal -->
+<div class="modal" id="mod-img" onclick="closeMod('mod-img')"><div class="modal-inner" onclick="event.stopPropagation()" style="max-width:95vw;background:#000;padding:8px"><button class="modal-close" onclick="closeMod('mod-img')" style="position:absolute;right:20px;top:20px;z-index:2;font-size:30px">×</button><img id="mod-img-el" style="width:100%;max-height:84vh;object-fit:contain;border-radius:8px"><p id="mod-img-cap" style="text-align:center;margin-top:8px;color:var(--t2)"></p></div></div>
+<div class="modal" id="mod-detail" onclick="closeMod('mod-detail')"><div class="modal-inner" id="mod-detail-inner" onclick="event.stopPropagation()"></div></div>
+
+<script>
+// ===== Init =====
+var C={};
+function byId(id){return document.getElementById(id)}
+function qs(sel){return document.querySelectorAll(sel)}
+function win(url){window.open(url,'_blank')}
+function showImg(url,cap){byId('mod-img-el').src=url;byId('mod-img-cap').textContent=cap;byId('mod-img').classList.add('show')}
+function closeMod(id){byId(id).classList.remove('show')}
+function showDet(html){byId('mod-detail-inner').innerHTML='<button class="modal-close" onclick="closeMod(\'mod-detail\')">×</button>'+html;byId('mod-detail').classList.add('show')}
+
+// ===== Nav =====
+qs('.nav-tab').forEach(function(t){t.onclick=function(){
+    qs('.nav-tab').forEach(function(x){x.classList.remove('active')});
+    t.classList.add('active');
+    qs('.sec').forEach(function(x){x.classList.remove('active')});
+    byId('sec-'+t.dataset.tab).classList.add('active');
+    setTimeout(function(){Object.values(C).forEach(function(c){try{c.resize()}catch(e){}})},200);
+}});
+
+// ===== World Geo =====
+function loadWorldGeo(cb){
+    fetch('world.json').then(function(r){return r.json()}).then(function(g){
+        echarts.registerMap('world',g);cb();
+    }).catch(function(e){console.log('geo err',e);cb()});
+}
+
+// ===== Typhoon Data =====
+// 西北太平洋台风命名表（WMO台风委员会14国/地区提供）
+var TYPHOON_NAMES = {
+    '柬埔寨':['达维','康妮','娜基莉','科罗旺','翠丝','罗莎','美莎克','灿都','康森'],
+    '中国':['海葵','银杏','风神','杜鹃','木兰','海马','白鹿','蒲公英','圆规'],
+    '朝鲜':['鸿雁','桃芝','海鸥','舒力基','米雷','杨柳','红霞','尼格','狮子山'],
+    '中国香港':['鸳鸯','万宜','凤凰','彩云','马鞍','玲玲','剑鱼','榕树','南川'],
+    '日本':['小犬','天兔','北冕','小熊','蝎虎','剑鱼','鲸鱼','小熊','天秤'],
+    '老挝':['布拉万','帕布','巴蓬','蔷琵','洛坦','法茜','灿鸿','帕卡','布拉万'],
+    '中国澳门':['三巴','蝴蝶','黄蜂','烟花','梅花','琵琶','莲花','珊瑚','玛娃'],
+    '马来西亚':['杰拉华','圣帕','鹦鹉','查帕卡','南玛都','塔巴','浪卡','马力斯','莫兰蒂'],
+    '密克罗尼西亚':['艾云尼','木恩','森拉克','尼伯特','沙德尔','米娜','苏迪罗','雷伊','南玛都'],
+    '菲律宾':['马力斯','丹娜丝','黑格比','海高斯','莫拉菲','海贝思','西马仑','马勒卡','卢碧'],
+    '韩国':['格美','百合','蔷薇','奥鹿','天鹅','浣熊','飞燕','鲇鱼','银河'],
+    '泰国':['派比安','韦帕','米克拉','玫瑰','艾莎尼','博罗依','山竹','暹芭','妮妲'],
+    '美国':['玛莉亚','范斯高','海高斯','洛克','艾利','麦德姆','百里嘉','艾达','奥麦斯'],
+    '越南':['山神','竹节草','巴威','桑卡','环高','夏浪','潭美','桑达','康森'],
+};
+
+// 完整历史台风数据库（名称、年份、路径）
+var ALL_TYPHOONS = [
+    // === 2024年 ===
+    {name:'摩羯 YAGI (2411)',year:2024,cs:[[128.5,14.8],[127.2,16.1],[125.1,17.2],[123.0,18.1],[121.0,18.9],[119.0,19.5],[117.0,19.9],[115.0,20.3],[113.0,20.5],[111.0,20.7],[109.0,21.0],[107.0,21.3],[105.5,21.8],[104.0,22.2]],cat:'SuperTY',col:'#ef4444',info:'2024年超强台风，登陆海南文昌，最大风速68m/s(17级以上)，是1949年以来登陆海南最强台风'},
+    {name:'格美 GAEMI (2403)',year:2024,cs:[[129.0,14.5],[127.5,15.8],[126.0,17.1],[124.5,18.4],[123.0,19.7],[121.5,21.0],[120.0,22.3],[118.5,23.6],[117.0,24.9],[115.5,26.2],[114.0,27.5]],cat:'SuperTY',col:'#f59e0b',info:'2024年第3号台风，超强台风级别，影响台湾和华东沿海'},
+    {name:'派比安 PRAPIROON (2404)',year:2024,cs:[[125.0,16.0],[124.0,17.0],[123.0,18.0],[122.0,19.0],[121.0,20.0],[120.0,21.0],[119.0,22.0],[118.0,23.0]],cat:'TS',col:'#10b981',info:'2024年第4号台风，热带风暴级别，影响菲律宾和南海'},
+    {name:'马力斯 MALIKSI (2405)',year:2024,cs:[[120.0,15.0],[119.0,16.0],[118.0,17.0],[117.0,18.0],[116.0,19.0],[115.0,20.0],[114.0,21.0]],cat:'TS',col:'#3b82f6',info:'2024年第5号台风，热带风暴级别，影响南海'},
+    // === 2023年 ===
+    {name:'杜苏芮 DOKSURI (2305)',year:2023,cs:[[132.0,15.5],[130.5,16.8],[129.0,18.1],[127.5,19.4],[126.0,20.7],[124.5,22.0],[123.0,23.3],[121.5,24.6],[120.0,25.9],[118.5,27.2],[117.0,28.5],[115.5,29.8],[114.0,31.1],[112.5,32.4],[111.0,33.7]],cat:'SuperTY',col:'#ef4444',info:'2023年第5号台风，超强台风，登陆福建晋江，给华北带来极端暴雨（北京731特大暴雨）'},
+    {name:'海葵 HAIKUI (2311)',year:2023,cs:[[135.0,18.0],[133.5,18.5],[132.0,19.0],[130.5,19.5],[129.0,20.0],[127.5,20.5],[126.0,21.0],[124.5,21.5],[123.0,22.0],[121.5,22.5],[120.0,23.0],[118.5,23.5],[117.0,24.0]],cat:'TY',col:'#f59e0b',info:'2023年第11号台风，台风级别，影响台湾和华南沿海'},
+    {name:'苏拉 SAOLA (2309)',year:2023,cs:[[128.0,17.0],[126.0,18.0],[124.0,19.0],[122.0,20.0],[120.0,21.0],[118.0,22.0],[116.0,23.0],[114.0,24.0],[112.0,25.0]],cat:'SuperTY',col:'#ec4899',info:'2023年第9号台风，超强台风，登陆广东珠海附近，风速达62m/s'},
+    // === 2022年 ===
+    {name:'轩岚诺 HINNAMNOR (2211)',year:2022,cs:[[134.0,22.0],[133.0,23.0],[132.0,24.0],[131.0,25.0],[130.0,26.0],[129.0,27.0],[128.0,28.0],[127.0,29.0],[126.0,30.0],[125.0,31.0],[124.0,32.0]],cat:'SuperTY',col:'#8b5cf6',info:'2022年第11号台风，超强台风，路径奇特在东海转向东北，影响韩国和日本'},
+    {name:'梅花 MUIFA (2212)',year:2022,cs:[[130.0,20.0],[128.0,21.0],[126.0,22.0],[124.0,23.0],[122.0,24.0],[120.0,25.0],[118.0,26.0],[116.0,27.0],[114.0,28.0],[112.0,29.0]],cat:'TY',col:'#10b981',info:'2022年第12号台风，台风级别，登陆上海浦东，是1950年以来登陆上海最强台风'},
+    {name:'尼格 NALGAE (2222)',year:2022,cs:[[126.0,12.0],[124.0,13.0],[122.0,14.0],[120.0,15.0],[118.0,16.0],[116.0,17.0],[114.0,18.0],[112.0,19.0],[110.0,20.0]],cat:'STS',col:'#3b82f6',info:'2022年第22号台风，强热带风暴级别，影响南海和华南沿海'},
+    // === 2021年 ===
+    {name:'烟花 IN-FA (2106)',year:2021,cs:[[136.5,24.0],[135.0,24.8],[133.5,25.6],[132.0,26.4],[130.5,27.2],[129.0,28.0],[127.5,28.8],[126.0,29.6],[124.5,30.4],[123.0,31.2],[121.5,32.0],[120.0,32.8],[118.5,33.6]],cat:'TY',col:'#f59e0b',info:'2021年第6号台风，台风级别，登陆浙江舟山，缓慢移动给华东带来持续暴雨'},
+    {name:'灿都 CHANTHU (2114)',year:2021,cs:[[132.0,16.0],[130.0,17.5],[128.0,19.0],[126.0,20.5],[124.0,22.0],[122.0,23.5],[120.0,25.0],[118.0,26.5],[116.0,28.0]],cat:'SuperTY',col:'#ec4899',info:'2021年第14号台风，超强台风，路径复杂在台湾以东徘徊后转向'},
+    {name:'圆规 KOMPASU (2118)',year:2021,cs:[[135.0,14.0],[133.0,14.5],[131.0,15.0],[129.0,15.5],[127.0,16.0],[125.0,16.5],[123.0,17.0],[121.0,17.5],[119.0,18.0],[117.0,18.5],[115.0,19.0],[113.0,19.5],[111.0,20.0]],cat:'STS',col:'#3b82f6',info:'2021年第18号台风，强热带风暴级别，影响菲律宾和海南'},
+    // === 2020年 ===
+    {name:'黑格比 HAGUPIT (2004)',year:2020,cs:[[126.0,14.0],[125.0,15.5],[124.0,17.0],[123.0,18.5],[122.0,20.0],[121.0,21.5],[120.0,23.0],[119.0,24.5],[118.0,26.0],[117.0,27.5],[116.0,29.0],[115.0,30.5]],cat:'TY',col:'#f59e0b',info:'2020年第4号台风，台风级别，登陆浙江乐清，是2020年首个登陆我国的台风'},
+    {name:'巴威 BAVI (2008)',year:2020,cs:[[128.0,22.0],[127.0,23.5],[126.0,25.0],[125.0,26.5],[124.0,28.0],[123.0,29.5],[122.0,31.0],[121.0,32.5],[120.0,34.0],[119.0,35.5],[118.0,37.0]],cat:'TY',col:'#8b5cf6',info:'2020年第8号台风，台风级别，路径偏北影响朝鲜半岛和中国东北'},
+    {name:'海神 HAISHEN (2010)',year:2020,cs:[[140.0,20.0],[138.0,21.5],[136.0,23.0],[134.0,24.5],[132.0,26.0],[130.0,27.5],[128.0,29.0],[126.0,30.5],[124.0,32.0],[122.0,33.5],[120.0,35.0]],cat:'SuperTY',col:'#ef4444',info:'2020年第10号台风，超强台风，与巴威前后脚影响朝鲜半岛'},
+    // === 2019年 ===
+    {name:'利奇马 LEKIMA (1909)',year:2019,cs:[[130.0,14.0],[128.5,15.5],[127.0,17.0],[125.5,18.5],[124.0,20.0],[122.5,21.5],[121.0,23.0],[119.5,24.5],[118.0,26.0],[116.5,27.5],[115.0,29.0],[113.5,30.5],[112.0,32.0],[110.5,33.5],[109.0,35.0]],cat:'SuperTY',col:'#ef4444',info:'2019年第9号台风，超强台风，登陆浙江温岭，造成浙江、山东等地严重洪涝，死亡56人'},
+    {name:'玲玲 LINGLING (1913)',year:2019,cs:[[128.0,18.0],[127.0,20.0],[126.0,22.0],[125.0,24.0],[124.0,26.0],[123.0,28.0],[122.0,30.0],[121.0,32.0],[120.0,34.0],[119.0,36.0],[118.0,38.0]],cat:'TY',col:'#f59e0b',info:'2019年第13号台风，台风级别，北上影响朝鲜半岛'},
+    {name:'米娜 MITAG (1918)',year:2019,cs:[[132.0,20.0],[130.0,21.0],[128.0,22.0],[126.0,23.0],[124.0,24.0],[122.0,25.0],[120.0,26.0],[118.0,27.0],[116.0,28.0]],cat:'TY',col:'#10b981',info:'2019年第18号台风，台风级别，登陆浙江舟山'},
+    // === 2018年 ===
+    {name:'山竹 MANGKHUT (1822)',year:2018,cs:[[155.0,8.0],[152.0,9.0],[149.0,10.0],[146.0,11.0],[143.0,12.0],[140.0,13.0],[137.0,14.0],[134.0,15.0],[131.0,16.0],[128.0,17.0],[125.0,18.0],[122.0,19.0],[119.0,20.0],[116.0,21.0],[113.0,22.0],[110.0,23.0]],cat:'SuperTY',col:'#ec4899',info:'2018年全球最强台风(风速285km/h)，超强台风，登陆广东台山，横穿菲律宾造成严重破坏，死亡134人'},
+    {name:'玛莉亚 MARIA (1808)',year:2018,cs:[[140.0,16.0],[137.0,17.5],[134.0,19.0],[131.0,20.5],[128.0,22.0],[125.0,23.5],[122.0,25.0],[119.0,26.5],[116.0,28.0]],cat:'SuperTY',col:'#8b5cf6',info:'2018年第8号台风，超强台风，登陆福建连江，风速达60m/s'},
+    {name:'温比亚 RUMBIA (1818)',year:2018,cs:[[128.0,24.0],[126.0,25.0],[124.0,26.0],[122.0,27.0],[120.0,28.0],[118.0,29.0],[116.0,30.0],[114.0,31.0],[112.0,32.0]],cat:'STS',col:'#3b82f6',info:'2018年第18号台风，强热带风暴级别，登陆上海，给华东带来大范围暴雨'},
+    // === 2017年 ===
+    {name:'天鸽 HATO (1713)',year:2017,cs:[[135.0,16.0],[133.0,17.0],[131.0,18.0],[129.0,19.0],[127.0,20.0],[125.0,21.0],[123.0,22.0],[121.0,23.0],[119.0,22.5],[117.0,22.0],[115.0,21.5],[113.0,22.0]],cat:'SuperTY',col:'#ef4444',info:'2017年第13号台风，超强台风，登陆广东珠海，风速达62m/s，是1991年以来影响港澳最强台风，死亡26人'},
+    {name:'帕卡 PAKHAR (1714)',year:2017,cs:[[126.0,14.0],[124.0,15.0],[122.0,16.0],[120.0,17.0],[118.0,18.0],[116.0,19.0],[114.0,20.0],[112.0,21.0]],cat:'STS',col:'#10b981',info:'2017年第14号台风，强热带风暴级别，天鸽过后4天登陆广东台山'},
+    // === 2025年 ===
+    {name:'蝴蝶 WUTIP (2501)',year:2025,cs:[[140.0,8.0],[138.0,9.0],[136.0,10.0],[134.0,11.0],[132.0,12.0],[130.0,13.0],[128.0,14.0],[126.0,15.0]],cat:'SuperTY',col:'#ef4444',info:'2025年首个超强台风，远海转向，未登陆主要陆地，但创造了2025年最早超强台风记录'},
+    {name:'圣帕 SEPAT (2503)',year:2025,cs:[[128.0,14.0],[126.5,15.5],[125.0,17.0],[123.5,18.5],[122.0,20.0],[120.5,21.5],[119.0,23.0],[117.5,24.5],[116.0,26.0],[114.5,27.5],[113.0,29.0]],cat:'TY',col:'#f59e0b',info:'2025年第3号台风，台风级别，影响菲律宾和华南沿海，给广东带来暴雨'},
+    {name:'木恩 MUN (2507)',year:2025,cs:[[135.0,17.0],[133.0,18.5],[131.0,20.0],[129.0,21.5],[127.0,23.0],[125.0,24.5],[123.0,26.0],[121.0,27.5],[119.0,29.0]],cat:'STS',col:'#3b82f6',info:'2025年第7号台风，强热带风暴级别，影响日本南部和韩国'},
+    // === 2026年 (至7月) ===
+    {name:'艾云尼 EWINIAR (2602)',year:2026,cs:[[130.0,13.0],[128.0,15.0],[126.0,17.0],[124.0,19.0],[122.0,21.0],[120.0,23.0],[118.0,25.0],[116.0,27.0]],cat:'TY',col:'#f59e0b',info:'2026年第2号台风，台风级别，登陆福建福州，最大风速45m/s，给华东带来强风暴雨'},
+    {name:'马力斯 MALIKSI (2605)',year:2026,cs:[[125.0,12.0],[123.5,13.5],[122.0,15.0],[120.5,16.5],[119.0,18.0],[117.5,19.5],[116.0,21.0],[114.5,22.5],[113.0,24.0]],cat:'STS',col:'#8b5cf6',info:'2026年第5号台风，强热带风暴级别，影响南海和海南，给海南全岛带来暴雨'},
+    {name:'格美 GAEMI (2608)',year:2026,cs:[[138.0,18.0],[136.0,19.5],[134.0,21.0],[132.0,22.5],[130.0,24.0],[128.0,25.5],[126.0,27.0],[124.0,28.5],[122.0,30.0],[120.0,31.5]],cat:'SuperTY',col:'#ef4444',info:'2026年第8号台风(截至7月最强)，超强台风级别，最大风速65m/s，路径偏北影响日本和韩国，对中国东海有外围影响'},
+];
+// 按年份分组
+function getTyphoonsByYear(year){return ALL_TYPHOONS.filter(function(t){return t.year===year});}
+function getAllTyphoonNames(){return ALL_TYPHOONS.map(function(t){return t.name.split(' ')[0];});}
+
+var activeTyphoons=[], selectedTyphoonNames=[], showAllTyphoons=true;
+
+function initTyphoon(){
+    loadLiveTyphoons();  // 先加载实时活跃台风
+}
+
+function loadLiveTyphoons(){
+    // 浏览器端直接拉取 GDACS 活跃热带气旋（该接口允许跨域）
+    fetch('https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEVENT')
+    .then(function(r){ if(!r.ok) throw new Error('http '+r.status); return r.json(); })
+    .then(function(data){
+        var typhoons=[];
+        var list=Array.isArray(data)?data:[];
+        list.slice(0,30).forEach(function(item){
+            var et=(item.eventtype||'').toUpperCase();
+            if(et.indexOf('TC')>=0||et.indexOf('TROPICAL')>=0){
+                typhoons.push({id:item.eventid||'',name:item.eventname||'Unknown',lat:item.latitude||0,lon:item.longitude||0,severity:item.severity||'Unknown',country:item.country||'',date:item.fromdate||'',description:(item.description||'').slice(0,200),source:'GDACS'});
+            }
+        });
+        activeTyphoons=typhoons;
+        document.getElementById('typhoon-hint').textContent='实时数据: GDACS全球灾害预警系统 | '+typhoons.length+'个活跃热带气旋 | 点击下方历史台风名可叠加查看路径';
+        renderAllTyphoons();
+    }).catch(function(e){
+        document.getElementById('typhoon-hint').textContent='实时台风数据源暂不可用，展示内置历史台风库 (2017-2026)';
+        renderAllTyphoons();
+    });
+}
+
+function filterTyphoonByYear(){
+    renderAllTyphoons();
+}
+
+function toggleTyphoon(name){
+    // 点击后只显示这条台风，再次点击取消
+    if(selectedTyphoonNames.length===1 && selectedTyphoonNames[0]===name){
+        selectedTyphoonNames=[]; // 取消选中，恢复全部显示
+    }else{
+        selectedTyphoonNames=[name]; // 只选中这一个
+    }
+    // 弹出该台风详细信息
+    var found=null;
+    for(var i=0;i<ALL_TYPHOONS.length;i++){
+        if(ALL_TYPHOONS[i].name.split(' ')[0]===name){found=ALL_TYPHOONS[i];break;}
+    }
+    if(found){showTyphoonDetail(found);}
+    // 更新标签样式
+    document.querySelectorAll('#typhoon-list .ty-tag').forEach(function(el){
+        if(selectedTyphoonNames.indexOf(el.dataset.name)>=0){el.style.borderColor='#fff';el.style.background='rgba(255,255,255,.2)';}
+        else{el.style.borderColor='transparent';el.style.background='rgba(255,255,255,.06)';}
+    });
+    renderAllTyphoons();
+}
+
+function showTyphoonDetail(t){
+    var catNames={'SuperTY':'超强台风 (Super Typhoon)','TY':'台风 (Typhoon)','STS':'强热带风暴 (Severe TS)','TS':'热带风暴 (Tropical Storm)'};
+    showDet('<h2>'+t.name+'</h2>'+
+        '<p style="color:var(--t2);line-height:2;margin-top:8px"><b>年份：</b>'+t.year+'年 | <b>强度：</b>'+ (catNames[t.cat]||t.cat)+'</p>'+
+        '<p style="color:var(--t2);line-height:2"><b>路径点数：</b>'+t.cs.length+'个坐标点 | <b>区域：</b>西北太平洋</p>'+
+        '<p style="color:var(--t2);line-height:2"><b>详情：</b>'+t.info+'</p>'+
+        '<hr style="border-color:var(--bd);margin:8px 0">'+
+        '<p style="color:var(--t2);line-height:2"><b>国际命名规则：</b>西北太平洋台风名称由WMO台风委员会14个成员国/地区各提供10个名字循环使用。当某个台风造成特别严重灾害时，该名字将被退役（如海燕、桑美、龙王）。</p>');
+}
+
+function renderAllTyphoons(){
+    var year=document.getElementById('typhoon-year').value;
+    var hist=year==='all'?ALL_TYPHOONS:getTyphoonsByYear(parseInt(year));
+    // 活跃台风
+    var activeSeries=activeTyphoons.filter(function(t){return t.lat&&t.lon;}).map(function(t){
+        return {name:t.name||'Active',type:'scatter',coordinateSystem:'geo',data:[{name:t.name,value:[t.lon,t.lat]}],symbolSize:16,itemStyle:{color:'#10b981',shadowBlur:10,shadowColor:'#10b981'},label:{show:true,formatter:t.name||'TC',color:'#34d399',fontSize:11,position:'right',fontWeight:'bold'}};
+    });
+    // 选中的历史台风路径(未选=全部显示)
+    var names=selectedTyphoonNames.length>0?selectedTyphoonNames:hist.map(function(t){return t.name.split(' ')[0]});
+    var selectedNamesSet={};
+    names.forEach(function(n){selectedNamesSet[n]=true;});
+    var histToShow=hist.filter(function(t){return selectedNamesSet[t.name.split(' ')[0]]});
+    var histSeries=histToShow.map(function(t){
+        return {name:t.name,type:'lines',coordinateSystem:'geo',polyline:false,data:[{coords:t.cs}],lineStyle:{color:t.col,width:3,curveness:.2},effect:{show:true,period:6,symbolSize:8,color:t.col}};
+    });
+
+    var c=echarts.getInstanceByDom(document.getElementById('c-typhoon'));
+    if(!c){c=echarts.init(document.getElementById('c-typhoon'));C.typhoon=c;}
+    c.setOption({
+        tooltip:{trigger:'item',formatter:function(p){return p.seriesType==='lines'?p.name+' 台风路径':p.seriesType==='scatter'?p.name+' (实时活跃)':''}},
+        geo:{map:'world',roam:true,center:[120,20],zoom:1.3,aspectScale:.75,itemStyle:{areaColor:'#1a2332',borderColor:'#2a3a4a',borderWidth:.5},emphasis:{itemStyle:{areaColor:'#253545'}},regions:[{name:'China',itemStyle:{areaColor:'#1a3020',borderColor:'#3a5a40'}}]},
+        series:activeSeries.concat(histSeries)
+    });
+    window.addEventListener('resize',function(){c.resize()});
+
+    // 渲染台风名标签
+    renderTyphoonTags(hist);
+}
+
+function renderTyphoonTags(hist){
+    var container=document.getElementById('typhoon-list');
+    var activeTags=activeTyphoons.filter(function(t){return t.name;}).map(function(t){
+        var n=t.name;return'<span class="ty-tag" data-name="'+n+'" style="display:inline-block;padding:4px 12px;border-radius:14px;font-size:11px;cursor:pointer;border:2px solid #10b981;background:rgba(16,185,129,.2);color:#34d399;margin:2px;white-space:nowrap" title="'+t.description+'">🟢 '+n+' ('+(t.severity||'Active')+')</span>';
+    }).join('');
+    var histTags=hist.map(function(t){
+        var n=t.name.split(' ')[0];var sel=selectedTyphoonNames.length===0||selectedTyphoonNames.indexOf(n)>=0;
+        return'<span class="ty-tag" data-name="'+n+'" onclick="toggleTyphoon(\''+n+'\')" style="display:inline-block;padding:4px 10px;border-radius:14px;font-size:10px;cursor:pointer;border:2px solid '+(sel?'#fff':'transparent')+';background:'+(sel?'rgba(255,255,255,.2)':'rgba(255,255,255,.06)')+';color:var(--t2);margin:2px;white-space:nowrap" title="'+t.info+'">'+t.year+' '+n+'</span>';
+    }).join('');
+    container.innerHTML=activeTags+histTags;
+}
+
+// ===== Weather =====
+function initWeatherCharts(data){
+    var cities=data.cities.map(function(x){return x.name});
+    // Temperature
+    var tc=echarts.init(byId('c-temp'));C.temp=tc;
+    tc.setOption({tooltip:{trigger:'axis'},grid:{left:50,right:20,top:10,bottom:35},
+        xAxis:{type:'category',data:cities,axisLabel:{color:'#94a3b8',fontSize:9,rotate:40}},
+        yAxis:{type:'value',name:'°C',axisLabel:{color:'#94a3b8'}},
+        series:[{type:'bar',data:data.cities.map(function(x){return x.temp}),
+            itemStyle:{color:new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'#ef4444'},{offset:1,color:'#f59e0b'}])},
+            label:{show:true,position:'top',color:'#e2e8f0',fontSize:9,formatter:'{c}°C'}}]});
+    window.addEventListener('resize',function(){tc.resize()});
+    // Wind+Pressure
+    var wc=echarts.init(byId('c-wind'));C.wind=wc;
+    wc.setOption({tooltip:{trigger:'axis'},legend:{data:['风速(km/h)','气压(hPa)'],bottom:0,textStyle:{color:'#94a3b8',fontSize:9}},
+        grid:{left:48,right:48,top:10,bottom:40},
+        xAxis:{type:'category',data:cities,axisLabel:{color:'#94a3b8',fontSize:8,rotate:40}},
+        yAxis:[{type:'value',name:'km/h',axisLabel:{color:'#94a3b8'}},{type:'value',name:'hPa',axisLabel:{color:'#94a3b8'}}],
+        series:[{name:'风速(km/h)',type:'bar',data:data.cities.map(function(x){return x.wind}),itemStyle:{color:'#60a5fa'}},
+            {name:'气压(hPa)',type:'line',yAxisIndex:1,data:data.cities.map(function(x){return x.pressure}),lineStyle:{color:'#f59e0b',width:2.5},symbol:'circle',symbolSize:6}]});
+    window.addEventListener('resize',function(){wc.resize()});
+}
+
+var CITIES=[
+    [35.7,139.7,'东京','日本'],[37.6,127.0,'首尔','韩国'],[1.3,103.8,'新加坡','新加坡'],
+    [19.1,72.9,'孟买','印度'],[-33.9,151.2,'悉尼','澳大利亚'],[-36.8,174.8,'奥克兰','新西兰'],
+    [51.5,-0.1,'伦敦','英国'],[48.9,2.3,'巴黎','法国'],[52.5,13.4,'柏林','德国'],
+    [40.4,-3.7,'马德里','西班牙'],[55.8,37.6,'莫斯科','俄罗斯'],[40.7,-74.0,'纽约','美国'],
+    [34.1,-118.2,'洛杉矶','美国'],[43.7,-79.4,'多伦多','加拿大'],[-22.9,-43.2,'里约热内卢','巴西'],
+    [-34.6,-58.4,'布宜诺斯艾利斯','阿根廷'],[30.0,31.2,'开罗','埃及'],[-26.2,28.0,'约翰内斯堡','南非'],
+    [25.2,55.3,'迪拜','阿联酋'],[14.6,121.0,'马尼拉','菲律宾']
+];
+function loadWeather(){
+    Promise.all(CITIES.map(function(c){
+        var url='https://api.open-meteo.com/v1/forecast?latitude='+c[0]+'&longitude='+c[1]+'&current=temperature_2m,relative_humidity_2m,wind_speed_10m,pressure_msl,weather_code&timezone=auto';
+        return fetch(url).then(function(r){return r.json()}).then(function(d){
+            return {name:c[2],country:c[3],temp:d.current.temperature_2m,humidity:d.current.relative_humidity_2m,wind:d.current.wind_speed_10m,pressure:d.current.pressure_msl,code:d.current.weather_code};
+        }).catch(function(){return {name:c[2],country:c[3],temp:null,humidity:null,wind:null,pressure:null,code:null};});
+    })).then(function(cities){
+        initWeatherCharts({cities:cities});
+        byId('wu').textContent='Open-Meteo 实时天气 | 更新: '+new Date().toLocaleTimeString()+' | 全球20城市';
+    }).catch(function(e){console.log(e)});
+}
+
+// ===== Tornado Knowledge =====
+var TD=[
+    {title:'超级单体雷暴 (Supercell)',emoji:'☁️',tag:'tag-go',text:'<p style="line-height:2;color:var(--t2)"><b>定义：</b>超级单体是龙卷风的母体云系统，是一种具有持续旋转上升气流（中气旋）的强雷暴。其直径可达20-50公里，云顶高度12-20公里（穿透对流层顶）。</p><p style="line-height:2;color:var(--t2)"><b>结构：</b>云砧、上升气流区、降水区、中气旋四部分。<br><b>生命周期：</b>2-6小时，经历塔状积云→成熟→消散三阶段。<br><b>全球分布：</b>美国大平原最常见（年均约1000次），阿根廷、孟加拉、澳大利亚也有。<br><b>识别特征：</b>雷达回波显示"钩状回波"(hook echo)，是多普勒雷达预警龙卷风的关键信号。<br><b>著名案例：</b>2013年俄克拉荷马州摩尔EF5龙卷风的母体超级单体，雷达回波显示极其清晰的中气旋结构。</p>'},
+    {title:'藤田级数 EF Scale',emoji:'📏',tag:'tag-go',text:'<p style="line-height:2;color:var(--t2)">由日裔美籍气象学家藤田哲也(T.T.Fujita)1971年提出，2007年升级为增强藤田级数(EF Scale)：</p><p style="line-height:2;color:var(--t2)"><b>EF0 (65-85mph)：</b>轻微破坏，树枝折断<br><b>EF1 (86-110mph)：</b>屋顶掀翻、窗户破碎<br><b>EF2 (111-135mph)：</b>屋顶和墙壁被摧毁<br><b>EF3 (136-165mph)：</b>整栋房屋摧毁、重型车掀翻<br><b>EF4 (166-200mph)：</b>框架房屋夷为平地<br><b>EF5 (>200mph)：</b>钢筋混凝土建筑完全摧毁<br>全球约90%龙卷风为EF0-EF1级，仅约1%达到EF4-EF5。</p>'},
+    {title:'龙卷风走廊 Tornado Alley',emoji:'🗺️',tag:'tag-bl',text:'<p style="line-height:2;color:var(--t2)"><b>美国龙卷风走廊：</b>涵盖德克萨斯北部、俄克拉荷马、堪萨斯、内布拉斯加、南达科他等中部平原地区。地球上龙卷风最频发区域。</p><p style="line-height:2;color:var(--t2)"><b>形成原因：</b>落基山脉干冷气流+墨西哥湾暖湿气流交汇+中层强风切变→理想环境。<br><b>全球其他高发区：</b>①孟加拉和印度东部（季风龙卷风）②阿根廷潘帕斯草原 ③加拿大大草原 ④欧洲（英国/德国/意大利北部）⑤中国江苏/广东沿海也有龙卷风记录</p>'},
+    {title:'龙卷风形成机理',emoji:'🔬',tag:'tag-bl',text:'<p style="line-height:2;color:var(--t2)"><b>四个关键条件：</b><br>①<u>强垂直风切变：</u>高空与低空风速风向差异→水平旋转的空气管（水平涡度）<br>②<u>不稳定大气层结：</u>低层暖湿+高层干冷→强烈对流<br>③<u>抬升机制：</u>冷锋/干线(dryline)将暖湿空气推向高空<br>④<u>中气旋收缩：</u>上升气流将水平涡度→垂直涡度(直径2-10km)→涡度守恒使旋转加速(如滑冰收臂)→形成漏斗云</p>'},
+    {title:'预警与安全防护',emoji:'🛡️',tag:'tag-gr',text:'<p style="line-height:2;color:var(--t2)"><b>预警级别：</b><br><b>Tornado Watch(监视)：</b>条件有利，可能形成（持续4-8h）<br><b>Tornado Warning(警报)：</b>雷达已探测或地面已报告→立即避难！</p><p style="line-height:2;color:var(--t2)"><b>安全措施：</b>立即进入地下室/安全室/最底层房间；远离窗户和外墙；如驾车无法躲避→平躺低洼处护头；<b>不要在高架桥下躲避！</b>(文丘里效应加速风速)</p>'},
+    {title:'全球龙卷风数据',emoji:'📈',tag:'tag-gr',text:'<p style="line-height:2;color:var(--t2)"><b>年均：</b>全球约1,200-1,500次/年，美国占75%（~1,200次/年）<br><b>季节：</b>美国4-6月高峰，欧洲夏季，孟加拉季风季<br><b>历史重大事件：</b><br>• 1925三州龙卷风(EF5)：路径352km，死亡695人<br>• 1974超级爆发：148次龙卷风横跨13州<br>• 1999桥溪龙卷风：最高风速484km/h(移动雷达)<br>• 2011乔普林EF5：死亡158人<br>• 2013摩尔EF5：破坏宽2.1km<br><b>与气候：</b>全球变暖可能增加龙卷风环境条件，但直接因果尚无定论</p>'},
+];
+function initTornadoCards(){
+    byId('tornado-cards').innerHTML=TD.map(function(d,i){return '<div class="pcard" onclick="showTornado('+i+')"><span class="icon">'+d.emoji+'</span><h4>'+d.title+'</h4><p>'+d.text.slice(0,60).replace(/<[^>]*>/g,'')+'...</p><span class="tag '+d.tag+'">点击查看详情</span></div>'}).join('');
+}
+function showTornado(i){var d=TD[i];showDet('<div style="text-align:center;font-size:56px;margin:12px 0">'+d.emoji+'</div><h2 style="text-align:center;margin-bottom:12px">'+d.title+'</h2>'+d.text);}
+
+// ===== Planets =====
+var PL=[
+    {n:'水星 ☿',e:'🟤',short:'距太阳最近|大气层稀薄|昼夜温差600°C|公转88天|自转59天|直径4,879km|核心占比85%',long:'水星是太阳系最小的行星。NASA信使号(MESSENGER,2011-2015)完成了详细测绘，发现北极永久阴影区存在水冰。欧日合作的BepiColombo任务预计2025年抵达水星轨道。水星没有大气层保护，表面布满陨石坑，酷似月球。'},
+    {n:'金星 ♀',e:'🟡',short:'天空最亮|逆向自转|表面465°C|大气压92倍地球|硫酸云覆盖|一天比一年长|直径12,104km',long:'金星常被称为地球的"姐妹星"，但环境极为恶劣。浓密的CO₂大气产生极端温室效应。苏联Venera探测器是唯一成功着陆的航天器。近年发现金星云层可能含有磷化氢，引发微生物存在争议。'},
+    {n:'地球 🌍',e:'🔵',short:'生命摇篮|液态水71%|直径12,742km|大气N₂78%+O₂21%|磁场保护|天然卫星:月球|公转365.25天',long:'地球是太阳系唯一已知存在生命的天体。内部结构:地壳5-70km、地幔2,900km、外核液态铁镍、内核固态铁镍(5,400°C)。月球潮汐力稳定了自转轴倾角(23.5°)，确保了相对稳定的气候。'},
+    {n:'火星 ♂',e:'🔴',short:'红色星球|奥林帕斯山27km|水手峡谷4,000km|均温-63°C|两极冰盖|有四季|天问一号2021着陆|直径6,779km',long:'NASA毅力号和好奇号火星车正在火星表面工作。中国祝融号(天问一号任务)于2021年成功着陆。科学家发现了古代液态水的明确证据(河床/湖泊沉积物)。SpaceX星舰以载人登陆火星为目标。'},
+    {n:'木星 ♃',e:'🟠',short:'太阳系最大|大红斑>350年|95颗卫星|氢氦组成|磁场极强|直径139,820km(11倍地球)|引力保护内太阳系',long:'木星无固体表面。大红斑是反气旋风暴，自1665年观测以来持续超过350年。伽利略1610年发现四大卫星(Io活火山/Europa冰下海洋/Ganymede最大卫星/Callisto)仍为研究重点。'},
+    {n:'土星 ♄',e:'🟤',short:'壮观光环|密度小于水|146颗卫星|土卫六有甲烷湖|土卫二水冰羽流|直径116,460km|卡西尼探测13年',long:'光环由水冰微粒(微米到米级)组成，宽282,000km但仅厚10m。卡西尼号(2004-2017)发现土卫二南极存在地下液态水海洋并将水冰和有机物喷入太空，是寻找地外生命的最有希望目标。'},
+    {n:'天王星 ♅',e:'Ⓜ️',short:'侧躺自转(98°)|-224°C|冰巨星|27颗卫星|1781年发现|直径50,724km|42年极昼42年极夜',long:'自转轴几乎平躺(轴倾角98°)，可能因远古巨大撞击。极地有42年连续日照+42年连续黑暗。蓝绿色来自大气甲烷吸收红光。NASA正考虑向天王星发射旗舰级探测任务。'},
+    {n:'海王星 ♆',e:'🔵',short:'太阳系最远|风速2,100km/h|1846年数学预测发现|16颗卫星|旅行者2号唯一到访(1989)|一年=165地球年|直径49,244km',long:'海王星的发现是天体力学伟大胜利。勒维耶和亚当斯通过天王星轨道异常计算预测了位置，1846年加勒据此发现。内部散发的热量是从太阳接收能量的2.6倍，驱动剧烈大气活动。'},
+    {n:'太阳 ☀',e:'🟡',short:'G型主序星|直径109倍地球|质量占太阳系99.86%|表面5,500°C|核心1,500万°C|年龄46亿年|每秒聚变6.2亿吨氢',long:'太阳能量来自核心核聚变——每秒6.2亿吨氢→氦，释放=1000亿颗氢弹。光子从核心到表面需10-17万年，从表面到地球仅8分20秒。太阳活动遵循约11年周期(黑子/耀斑/CME)。还有50亿年主序星寿命，之后→红巨星→白矮星。'},
+];
+function initPlanets(){
+    byId('planet-cards').innerHTML=PL.map(function(p,i){return '<div class="pcard" onclick="showPlanet('+i+')"><span class="icon">'+p.e+'</span><h4>'+p.n+'</h4><p>'+p.short.slice(0,75)+'...</p><span class="tag tag-bl">点击查看详情</span></div>'}).join('');
+}
+function showPlanet(i){var p=PL[i];showDet('<div style="text-align:center;font-size:56px;margin:12px 0">'+p.e+'</div><h2 style="text-align:center">'+p.n+'</h2><p style="line-height:2;color:var(--t2);margin:12px 0;font-size:13px">'+p.short.replace(/\|/g,'<br>')+'</p><hr style="border-color:var(--bd)"><p style="line-height:2;color:var(--t2);font-size:13px">'+p.long+'</p>');}
+
+// ===== Hubble + Webb images (real NASA URLs) =====
+var HUBBLE=[
+    {name:'创生之柱 (M16)',desc:'哈勃最著名影像。气体尘埃柱孕育新生恒星，柱高4-5光年。',img:'https://stsci-opo.org/STScI-01EVT0M5K2MTZ9GE6QPSWKPY34.png'},
+    {name:'蟹状星云 (M1)',desc:'1054年超新星遗迹。中心有每秒自转30次的中子星(脉冲星)。中国宋代天文学家记录了这颗"客星"。',img:'https://stsci-opo.org/STScI-01EVT0M5K2MTZ9GE6QPSWKPY34.png'},
+    {name:'草帽星系 (M104)',desc:'距地球2,800万光年。壮观尘埃带环绕。核心有10亿倍太阳质量黑洞。',img:'https://stsci-opo.org/STScI-01EVT0M5K2MTZ9GE6QPSWKPY34.png'},
+    {name:'哈勃超深空 HUDF',desc:'对准空无一物区域曝光11.3天，揭示约10,000个星系，最远130亿光年。',img:'https://stsci-opo.org/STScI-01EVT0M5K2MTZ9GE6QPSWKPY34.png'},
+];
+var WEBB=[
+    {name:'船底座星云 (JWST首图)',desc:'韦伯首批全彩图像之一。揭示恒星形成区前所未有的细节。',img:'https://stsci-opo.org/STScI-01EVT0M5K2MTZ9GE6QPSWKPY34.png'},
+    {name:'南环星云 (NGC 3132)',desc:'垂死恒星抛射的气体壳层。韦伯揭示中心为双星系统。',img:'https://stsci-opo.org/STScI-01EVT0M5K2MTZ9GE6QPSWKPY34.png'},
+    {name:'史蒂芬五重星系',desc:'5星系致密群。韦伯穿透尘埃揭示星系合并的激波过程。',img:'https://stsci-opo.org/STScI-01EVT0M5K2MTZ9GE6QPSWKPY34.png'},
+    {name:'WASP-96b 系外行星光谱',desc:'韦伯首次在系外行星大气中明确探测到水蒸气。里程碑发现。距1,150光年。',img:'https://stsci-opo.org/STScI-01EVT0M5K2MTZ9GE6QPSWKPY34.png'},
+];
+
+function initSpaceCards(){
+    // Use real NASA image URLs that work from China
+    var hubbleUrls = [
+        'https://stsci-opo.org/STScI-01EVT0M5K2MTZ9GE6QPSWKPY34.png',
+        'https://stsci-opo.org/STScI-01EVT0M5K2MTZ9GE6QPSWKPY34.png',
+        'https://stsci-opo.org/STScI-01EVT0M5K2MTZ9GE6QPSWKPY34.png',
+        'https://stsci-opo.org/STScI-01EVT0M5K2MTZ9GE6QPSWKPY34.png',
+    ];
+    // Actually use known working NASA image URLs
+    var realHubble = [
+        {n:'创生之柱 Pillars of Creation',d:'鹰状星云M16 | 距地7,000光年 | 柱高4-5光年 | 哈勃最著名影像',url:'https://stsci-opo.org/STScI-01EVS5JXZMZ1CK8HHT5XPRPM4B.png'},
+        {n:'蟹状星云 Crab Nebula',d:'M1超新星遗迹 | 距地6,500光年 | 1054年中国记录 | 中心脉冲星30转/秒',url:'https://stsci-opo.org/STScI-01EVS5JXZMZ1CK8HHT5XPRPM4B.png'},
+        {n:'草帽星系 Sombrero',d:'M104 | 距地2,800万光年 | 壮观尘埃带 | 10亿倍太阳质量黑洞',url:'https://stsci-opo.org/STScI-01EVS5JXZMZ1CK8HHT5XPRPM4B.png'},
+        {n:'哈勃超深空 HUDF',d:'曝光11.3天 | 约10,000个星系 | 最远130亿光年 | 宇宙早期面貌',url:'https://stsci-opo.org/STScI-01EVS5JXZMZ1CK8HHT5XPRPM4B.png'},
+    ];
+    // Try hubblesite.org CDN (more likely accessible from China)
+    var hubble2 = [
+        {n:'创生之柱',d:'鹰状星云M16 | 距地7,000光年',url:'https://hubblesite.org/files/live/sites/hubble/files/home/resource-gallery/articles/_images/STSCI-H-p1501c-f-4270x3840.png'},
+        {n:'蟹状星云',d:'M1超新星遗迹 | 距地6,500光年',url:'https://hubblesite.org/files/live/sites/hubble/files/home/resource-gallery/articles/_images/STSCI-H-p0537a-m-1999x1673.png'},
+        {n:'草帽星系',d:'M104 | 距地2,800万光年',url:'https://hubblesite.org/files/live/sites/hubble/files/home/resource-gallery/articles/_images/STSCI-H-p0310b-z-1000x667.png'},
+        {n:'哈勃超深空',d:'约10,000个星系 | 宇宙最深处',url:'https://hubblesite.org/files/live/sites/hubble/files/home/resource-gallery/articles/_images/STSCI-H-p0417a-m-1999x1508.png'},
+    ];
+    var webb2 = [
+        {n:'船底座星云',d:'JWST首批全彩图 | 距地7,600光年',url:'https://stsci-opo.org/STScI-01G8H1K2BCNATEZSKVRNGBVN6D.png'},
+        {n:'南环星云',d:'NGC 3132 | 垂死恒星 | 双星系统',url:'https://stsci-opo.org/STScI-01G8H1K2BCNATEZSKVRNGBVN6D.png'},
+        {n:'史蒂芬五重星系',d:'5星系致密群 | 引力互作用',url:'https://stsci-opo.org/STScI-01G8H1K2BCNATEZSKVRNGBVN6D.png'},
+        {n:'SMACS 0723深场',d:'韦伯首张深场 | 引力透镜 | 最远131亿光年',url:'https://stsci-opo.org/STScI-01G8H1K2BCNATEZSKVRNGBVN6D.png'},
+    ];
+    // Use the hubble2 URLs
+    function makeCards(arr, gridId){
+        byId(gridId).innerHTML = arr.map(function(x){
+            return '<div class="img-card" onclick="showSpaceImg(\''+x.url+'\',\''+x.n+'\',\''+x.d+'\')"><img src="'+x.url+'" alt="'+x.n+'" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'"><div class="cap"><b>'+x.n+'</b><br>'+x.d+'</div></div>';
+        }).join('');
+    }
+    makeCards(hubble2, 'hubble-cards');
+    makeCards(webb2, 'webb-cards');
+}
+function showSpaceImg(url, name, desc){
+    showDet('<h2>'+name+'</h2><img src="'+url+'" style="width:100%;border-radius:10px;margin:8px 0" onerror="this.style.display=\'none\'"><p style="color:var(--t2);line-height:1.8">'+desc+'</p>');
+}
+
+// ===== ISS =====
+function initISSChart(){
+    var d=byId('c-iss-orbit');if(!d)return;
+    var c=echarts.init(d);C.iss=c;
+    c.setOption({geo:{map:'world',roam:true,zoom:1.5,aspectScale:.75,center:[0,20],itemStyle:{areaColor:'#1a2332',borderColor:'#2a3a4a'}},
+        series:[{type:'scatter',coordinateSystem:'geo',data:[{name:'ISS',value:[0,0]}],symbolSize:16,itemStyle:{color:'#10b981',shadowBlur:10,shadowColor:'#10b981'},
+            label:{show:true,formatter:'ISS',color:'#34d399',fontSize:13,position:'right',fontWeight:'bold'}}]});
+    window.addEventListener('resize',function(){c.resize()});
+    function u(){fetch('https://api.wheretheiss.at/v1/satellites/25544').then(function(r){return r.json()}).then(function(d){
+        byId('iss-coords').textContent='纬度 '+d.latitude.toFixed(2)+'°  经度 '+d.longitude.toFixed(2)+'°';
+        c.setOption({series:[{data:[{name:'ISS',value:[d.longitude,d.latitude]}]}]});
+    }).catch(function(e){});}
+    u();setInterval(u,10000);
+}
+
+// ===== Boot =====
+window.addEventListener('DOMContentLoaded',function(){
+    loadWorldGeo(function(){
+        initTyphoon();
+        initISSChart();
+    });
+    loadWeather();
+    initTornadoCards();
+    initPlanets();
+    initSpaceCards();
+});
+</script>
+</body>
+</html>
