@@ -78,7 +78,7 @@ body{font-family:-apple-system,'PingFang SC','Microsoft YaHei',sans-serif;backgr
 .leaflet-control-attribution a{color:#94a3b8!important}
 .ty-label{background:rgba(8,13,22,.8);padding:2px 6px;border-radius:4px;font-size:11px;font-weight:bold;white-space:nowrap;border:1px solid rgba(255,255,255,.28);cursor:pointer}
 /* Mobile */
-@media(max-width:768px){.grid2,.grid3,.grid4{grid-template-columns:1fr 1fr}.chart{height:240px}.chart-lg{height:300px}.nav-tab{padding:6px 12px;font-size:11px}.vcard{min-width:160px}}
+@media(max-width:768px){.grid2{grid-template-columns:1fr}.grid3,.grid4{grid-template-columns:1fr 1fr}.chart{height:240px}.chart-lg{height:300px}#c-typhoon{height:340px}.nav-tab{padding:6px 12px;font-size:11px}.vcard{min-width:160px}.card{padding:12px}.card h2{font-size:15px}}
 </style>
 </head>
 <body>
@@ -351,6 +351,11 @@ function initTyphoonMap(){
     liveLayerGroup=L.layerGroup().addTo(typhoonMap);
     selLayerGroup=L.layerGroup().addTo(typhoonMap);
     loadCmaTyphoons();            // 加载 2026 年全部台风真实路径
+    // 移动端适配：窗口缩放/旋转/初始布局完成后重算地图尺寸，避免比例错乱
+    function fixTySize(){if(typhoonMap){try{typhoonMap.invalidateSize()}catch(e){}}}
+    window.addEventListener('resize',fixTySize);
+    window.addEventListener('orientationchange',function(){setTimeout(fixTySize,300);});
+    setTimeout(fixTySize,500);
 }
 
 function loadCmaTyphoons(){
